@@ -22,5 +22,5 @@ public interface CartService {
 
     Cart calculateDeliveryCost(Long userId, String deliveryType);
 
-    void checkout(Long userId);
+    String checkout(Long userId);
 }

@@ -31,4 +31,5 @@ public class ServiceRequestDTO {
     private Double budget;
     private String status;
     private List<RequestAttachmentDTO> attachments;
+
 }

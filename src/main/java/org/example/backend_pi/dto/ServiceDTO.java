@@ -1,7 +1,8 @@
 package org.example.backend_pi.dto;
-
 // dto/ServiceDTO.java
+
 import lombok.Data;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -21,4 +22,12 @@ public class ServiceDTO {
     private String providerName;
     private String providerCompanyName;
     private Boolean isInApp;
+
+    private String validationStatus;
+    private String subCategory;
+    private String businessType;         // Type d'entreprise : MANUFACTURER, DISTRIBUTOR...
+    private String rejectionReason;
+    private LocalDateTime rejectedAt;
+    private LocalDateTime approvedAt;
+    private Long validatedBy;
 }

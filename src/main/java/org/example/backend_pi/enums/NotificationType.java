@@ -1,22 +1,38 @@
 package org.example.backend_pi.enums;
 
-// enums/NotificationType.java
-
-
-import lombok.Getter;
-
-@Getter
 public enum NotificationType {
-    NEW_REQUEST("Nouvelle demande"),
-    REQUEST_ACCEPTED("Demande acceptée"),
-    REQUEST_REJECTED("Demande refusée"),
-    REQUEST_RESPONSE("Réponse à la demande"),
-    REQUEST_COMPLETED("Demande terminée"),
-    REQUEST_CANCELLED("Demande annulée");
+    // Machines
+    MACHINE_APPROVED,
+    MACHINE_REJECTED,
+    MACHINE_LOW_STOCK,
 
-    private final String label;
+    // Services
+    SERVICE_APPROVED,
+    SERVICE_REJECTED,
 
-    NotificationType(String label) {
-        this.label = label;
-    }
+    // Demandes
+    REQUEST_RECEIVED,
+    REQUEST_ACCEPTED,
+    REQUEST_REJECTED,
+    REQUEST_IN_PROGRESS,
+    REQUEST_COMPLETED,
+    REQUEST_CANCELLED,
+
+    // Commandes
+    ORDER_CONFIRMED,
+    ORDER_IN_DELIVERY,
+    ORDER_DELIVERED,
+    ORDER_CANCELLED,
+
+    // Général
+    WELCOME,
+    NEW_MESSAGE,
+    REVIEW_RECEIVED,
+
+    // ✅ FIDÉLITÉ (nouveaux)
+    LOYALTY_POINTS_EARNED,
+    LOYALTY_POINTS_SPENT,
+    LOYALTY_TIER_UP,
+    LOYALTY_FREE_DELIVERY,
+    LOYALTY_PREMIUM_ACCESS
 }

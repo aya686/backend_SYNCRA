@@ -32,4 +32,12 @@ public interface MachineRepository extends JpaRepository<Machine, Long> {
                                     @Param("location") String location,
                                     @Param("minPrice") Double minPrice,
                                     @Param("maxPrice") Double maxPrice);
+    List<Machine> findByValidationStatus(String validationStatus);
+
+    List<Machine> findByValidationStatusAndSupplierId(String validationStatus, Long supplierId);
+
+    // Modifier les méthodes existantes pour ne retourner que les machines APPROVED
+    // Optionnel: créer des méthodes spécifiques pour le frontend public
+    @Query("SELECT m FROM Machine m WHERE m.validationStatus = 'APPROVED' AND m.isInApp = true")
+    List<Machine> findPublicMachines();
 }

@@ -2,7 +2,7 @@ package org.example.backend_pi.repository;
 
 // repository/ServiceRepository.java
 
-import org.example.backend_pi.entity.ServiceEntity;  // Import correct
+import org.example.backend_pi.entity.ServiceEntity;
 import org.example.backend_pi.enums.AvailabilityStatus;
 import org.example.backend_pi.enums.CategoryType;
 import org.example.backend_pi.enums.ServiceType;
@@ -14,12 +14,15 @@ import java.util.List;
 
 @Repository
 public interface ServiceRepository extends JpaRepository<ServiceEntity, Long> {
+
+    // Recherches existantes
     List<ServiceEntity> findByProviderId(Long providerId);
     List<ServiceEntity> findByCategory(CategoryType category);
-
     List<ServiceEntity> findByAvailability(AvailabilityStatus availability);
-
     List<ServiceEntity> findByServiceType(ServiceType serviceType);
+
+    // ✅ AJOUTER CES MÉTHODES POUR LA VALIDATION
+    List<ServiceEntity> findByValidationStatus(String validationStatus);
 
     @Query("SELECT s FROM ServiceEntity s WHERE " +
             "(:keyword IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

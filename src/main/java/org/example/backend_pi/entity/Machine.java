@@ -6,10 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.example.backend_pi.enums.AvailabilityStatus;
-import org.example.backend_pi.enums.CategoryType;
-import org.example.backend_pi.enums.MachineType;
-import org.example.backend_pi.enums.TransactionType;
+import org.example.backend_pi.enums.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -31,6 +28,9 @@ public class Machine {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "business_type", length = 50)
+    private BusinessType businessType;
 
 
     @Enumerated(EnumType.STRING)
@@ -105,6 +105,23 @@ public class Machine {
     @Column(name = "category")
     private CategoryType category;
 
+    @Column(name = "sub_category", length = 100)
+    private String subCategory; // Sous-catégorie spécifique (ex: tractors, irrigation...)
+
+    @Column(name = "validation_status")
+    private String validationStatus; // PENDING, APPROVED, REJECTED
+
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "validated_by")
+    private Long validatedBy; // ID de l'admin qui a validé/rejeté
     @JsonIgnore
     @OneToMany(mappedBy = "machine", cascade = CascadeType.ALL)
     private List<Review> reviews = new ArrayList<>();

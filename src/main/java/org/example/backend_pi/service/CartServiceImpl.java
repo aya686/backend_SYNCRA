@@ -1,33 +1,36 @@
 package org.example.backend_pi.service;
+// service/impl/CartServiceImpl.java
+// ✅ NOUVEAU : notification "stock faible" quand on ajoute au panier
+//    si la machine a stockQuantity <= 3 (seuil configurable)
 
-// service/impl/CartServiceImpl.java (version modifiée)
-// service/impl/CartServiceImpl.java (version modifiée)
-
-
-import org.example.backend_pi.entity.*;
-import org.example.backend_pi.enums.ItemType;
-import org.example.backend_pi.enums.DeliveryType;
-import org.example.backend_pi.repository.*;
-import org.example.backend_pi.service.CartService;
 import org.example.backend_pi.dto.AddToCartDTO;
 import org.example.backend_pi.dto.DeliveryInfoDTO;
+import org.example.backend_pi.entity.*;
+import org.example.backend_pi.enums.DeliveryType;
+import org.example.backend_pi.enums.ItemType;
+import org.example.backend_pi.enums.NotificationType;
+import org.example.backend_pi.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 
 @Service
 @Transactional
 public class CartServiceImpl implements CartService {
 
-    @Autowired
-    private CartRepository cartRepository;
+    // ─── SEUIL STOCK FAIBLE ────────────────────────────────────
+    // Si le stock restant après l'ajout est <= ce seuil, on notifie
+    private static final int LOW_STOCK_THRESHOLD = 3;
 
-    @Autowired
-    private CartItemRepository cartItemRepository;
+    @Autowired private CartRepository      cartRepository;
+    @Autowired private CartItemRepository  cartItemRepository;
+    @Autowired private MachineRepository   machineRepository;
+    @Autowired private OrderService        orderService;
 
-    @Autowired
-    private MachineRepository machineRepository;
+    // ✅ Injecté pour envoyer les alertes stock faible
+    @Autowired private NotificationService notificationService;
 
     @Override
     public Cart getCartByUserId(Long userId) {
@@ -36,92 +39,116 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public Cart addToCart(Long userId, AddToCartDTO addToCartDTO) {
-        // Vérifier que c'est bien une machine
-        if (!addToCartDTO.getItemType().equals("MACHINE")) {
-            throw new RuntimeException("Seules les machines peuvent être ajoutées au panier. Pour les services, veuillez créer une demande.");
-        }
+    public Cart addToCart(Long userId, AddToCartDTO dto) {
+        if (!dto.getItemType().equals("MACHINE"))
+            throw new RuntimeException("Seules les machines peuvent être ajoutées au panier.");
 
         Cart cart = getCartByUserId(userId);
-
-        // Vérifier si la machine existe
-        Machine machine = machineRepository.findById(addToCartDTO.getItemId())
+        Machine machine = machineRepository.findById(dto.getItemId())
                 .orElseThrow(() -> new RuntimeException("Machine non trouvée"));
 
-        // Vérifier si la machine est disponible
-        if (machine.getStockQuantity() != null && machine.getStockQuantity() <= 0) {
+        if (machine.getStockQuantity() != null && machine.getStockQuantity() <= 0)
             throw new RuntimeException("Machine non disponible en stock");
-        }
 
-        // Vérifier si l'item existe déjà dans le panier
-        CartItem existingItem = cart.getItems().stream()
-                .filter(item -> item.getItemType() == ItemType.MACHINE
-                        && item.getItemId().equals(addToCartDTO.getItemId()))
-                .findFirst()
-                .orElse(null);
+        CartItem existing = cart.getItems().stream()
+                .filter(i -> i.getItemType() == ItemType.MACHINE
+                        && i.getItemId().equals(dto.getItemId()))
+                .findFirst().orElse(null);
 
-        if (existingItem != null) {
-            // Augmenter la quantité
-            int newQuantity = existingItem.getQuantity() + addToCartDTO.getQuantity();
-            if (machine.getStockQuantity() != null && newQuantity > machine.getStockQuantity()) {
+        if (existing != null) {
+            int newQty = existing.getQuantity() + dto.getQuantity();
+            if (machine.getStockQuantity() != null && newQty > machine.getStockQuantity())
                 throw new RuntimeException("Quantité demandée dépasse le stock disponible");
-            }
-            existingItem.setQuantity(newQuantity);
-            existingItem.calculateTotalPrice();
-            cartItemRepository.save(existingItem);
+            existing.setQuantity(newQty);
+            existing.calculateTotalPrice();
+            cartItemRepository.save(existing);
         } else {
-            // Ajouter nouvelle machine
-            CartItem newItem = createCartItem(machine, addToCartDTO.getQuantity());
-            newItem.setCart(cart);
-            cart.getItems().add(newItem);
-            cartItemRepository.save(newItem);
+            CartItem item = createCartItem(machine, dto.getQuantity());
+            item.setCart(cart);
+            cart.getItems().add(item);
+            cartItemRepository.save(item);
         }
 
         cart.calculateTotal();
         cart.setUpdatedAt(LocalDateTime.now());
+        Cart saved = cartRepository.save(cart);
 
-        return cartRepository.save(cart);
+        // ✅ Vérifier le stock APRÈS l'ajout et envoyer une notification si faible
+        sendLowStockNotificationIfNeeded(userId, machine, dto.getQuantity());
+
+        return saved;
+    }
+
+    /**
+     * ✅ NOUVEAU : Envoie une notification "Stock faible" à l'utilisateur
+     * si la quantité restante en stock est <= LOW_STOCK_THRESHOLD après l'ajout.
+     *
+     * Ex: stock = 2, l'utilisateur vient d'ajouter 1 unité au panier
+     * → "⚠️ Dépêchez-vous ! Il ne reste que 2 exemplaires de [Nom Machine]"
+     */
+    private void sendLowStockNotificationIfNeeded(Long userId, Machine machine, int addedQty) {
+        if (machine.getStockQuantity() == null) return;
+
+        // Stock restant = stock actuel en DB (avant décrémentation — décrémentée seulement au checkout)
+        // On calcule le "stock libre" = stock DB - total dans tous les paniers
+        // Pour simplifier, on regarde juste le stock DB courant
+        int stockRemaining = machine.getStockQuantity();
+
+        if (stockRemaining <= LOW_STOCK_THRESHOLD && stockRemaining > 0) {
+            String urgencyEmoji = stockRemaining == 1 ? "🚨" : "⚠️";
+            String title = urgencyEmoji + " Stock quasi épuisé — " + machine.getName();
+            String content;
+
+            if (stockRemaining == 1) {
+                content = "⚡ Dernier exemplaire disponible ! "
+                        + "Vous avez \"" + machine.getName()
+                        + "\" dans votre panier — finalisez votre commande avant qu'il soit trop tard !";
+            } else {
+                content = "⚡ Plus que " + stockRemaining + " exemplaire(s) disponible(s) pour \""
+                        + machine.getName() + "\". "
+                        + "Cette machine est dans votre panier — dépêchez-vous de passer commande !";
+            }
+
+            notificationService.create(
+                    userId,
+                    NotificationType.MACHINE_LOW_STOCK,
+                    title,
+                    content,
+                    machine.getId(), "MACHINE",
+                    "/cart"           // lien direct vers le panier
+            );
+        }
     }
 
     @Override
     public Cart removeFromCart(Long userId, Long cartItemId) {
         Cart cart = getCartByUserId(userId);
-        cart.getItems().removeIf(item -> item.getId().equals(cartItemId));
+        cart.getItems().removeIf(i -> i.getId().equals(cartItemId));
         cartItemRepository.deleteById(cartItemId);
-
         cart.calculateTotal();
         cart.setUpdatedAt(LocalDateTime.now());
-
         return cartRepository.save(cart);
     }
 
     @Override
     public Cart updateQuantity(Long userId, Long cartItemId, Integer quantity) {
         Cart cart = getCartByUserId(userId);
-
         CartItem item = cart.getItems().stream()
-                .filter(i -> i.getId().equals(cartItemId))
-                .findFirst()
+                .filter(i -> i.getId().equals(cartItemId)).findFirst()
                 .orElseThrow(() -> new RuntimeException("Item non trouvé"));
 
-        if (quantity <= 0) {
-            return removeFromCart(userId, cartItemId);
-        }
+        if (quantity <= 0) return removeFromCart(userId, cartItemId);
 
-        // Vérifier le stock
         Machine machine = machineRepository.findById(item.getItemId())
                 .orElseThrow(() -> new RuntimeException("Machine non trouvée"));
-        if (machine.getStockQuantity() != null && quantity > machine.getStockQuantity()) {
+        if (machine.getStockQuantity() != null && quantity > machine.getStockQuantity())
             throw new RuntimeException("Quantité demandée dépasse le stock disponible");
-        }
 
         item.setQuantity(quantity);
         item.calculateTotalPrice();
         cartItemRepository.save(item);
-
         cart.calculateTotal();
         cart.setUpdatedAt(LocalDateTime.now());
-
         return cartRepository.save(cart);
     }
 
@@ -133,87 +160,61 @@ public class CartServiceImpl implements CartService {
         cart.setDeliveryCost(0.0);
         cart.setTotalAmount(0.0);
         cart.setUpdatedAt(LocalDateTime.now());
-
         return cartRepository.save(cart);
     }
 
     @Override
-    public Cart updateDeliveryInfo(Long userId, DeliveryInfoDTO deliveryInfoDTO) {
+    public Cart updateDeliveryInfo(Long userId, DeliveryInfoDTO dto) {
         Cart cart = getCartByUserId(userId);
-
-        if (deliveryInfoDTO.getDeliveryAddress() != null) {
-            cart.setDeliveryAddress(deliveryInfoDTO.getDeliveryAddress());
-        }
-        if (deliveryInfoDTO.getDeliveryCity() != null) {
-            cart.setDeliveryCity(deliveryInfoDTO.getDeliveryCity());
-        }
-        if (deliveryInfoDTO.getDeliveryZipCode() != null) {
-            cart.setDeliveryZipCode(deliveryInfoDTO.getDeliveryZipCode());
-        }
-        if (deliveryInfoDTO.getDeliveryPhone() != null) {
-            cart.setDeliveryPhone(deliveryInfoDTO.getDeliveryPhone());
-        }
-        if (deliveryInfoDTO.getDeliveryType() != null) {
-            calculateDeliveryCost(userId, deliveryInfoDTO.getDeliveryType());
-        }
-
+        if (dto.getDeliveryAddress() != null) cart.setDeliveryAddress(dto.getDeliveryAddress());
+        if (dto.getDeliveryCity()    != null) cart.setDeliveryCity(dto.getDeliveryCity());
+        if (dto.getDeliveryZipCode() != null) cart.setDeliveryZipCode(dto.getDeliveryZipCode());
+        if (dto.getDeliveryPhone()   != null) cart.setDeliveryPhone(dto.getDeliveryPhone());
         cart.setUpdatedAt(LocalDateTime.now());
         cart.calculateTotal();
-
         return cartRepository.save(cart);
     }
 
     @Override
     public Cart calculateDeliveryCost(Long userId, String deliveryType) {
         Cart cart = getCartByUserId(userId);
-
         try {
-            DeliveryType type = DeliveryType.valueOf(deliveryType.toUpperCase());
-            cart.setDeliveryCost(type.getDefaultCost());
+            cart.setDeliveryCost(DeliveryType.valueOf(deliveryType.toUpperCase()).getDefaultCost());
         } catch (IllegalArgumentException e) {
             cart.setDeliveryCost(5.0);
         }
-
         cart.calculateTotal();
         cart.setUpdatedAt(LocalDateTime.now());
-
         return cartRepository.save(cart);
     }
 
     @Override
-    public void checkout(Long userId) {
+    public String checkout(Long userId) {
         Cart cart = getCartByUserId(userId);
 
-        if (cart.getItems().isEmpty()) {
+        if (cart.getItems().isEmpty())
             throw new RuntimeException("Le panier est vide");
-        }
-
-        if (cart.getDeliveryAddress() == null || cart.getDeliveryAddress().isEmpty()) {
+        if (cart.getDeliveryAddress() == null || cart.getDeliveryAddress().isEmpty())
             throw new RuntimeException("L'adresse de livraison est requise");
-        }
 
-        // Vérifier le stock pour chaque machine
         for (CartItem item : cart.getItems()) {
             Machine machine = machineRepository.findById(item.getItemId())
-                    .orElseThrow(() -> new RuntimeException("Machine non trouvée: " + item.getItemName()));
-
-            if (machine.getStockQuantity() != null && item.getQuantity() > machine.getStockQuantity()) {
-                throw new RuntimeException("Stock insuffisant pour: " + machine.getName());
-            }
-
-            // Réduire le stock
+                    .orElseThrow(() -> new RuntimeException("Machine non trouvée : " + item.getItemName()));
+            if (machine.getStockQuantity() != null && item.getQuantity() > machine.getStockQuantity())
+                throw new RuntimeException("Stock insuffisant pour : " + machine.getName());
             if (machine.getStockQuantity() != null) {
                 machine.setStockQuantity(machine.getStockQuantity() - item.getQuantity());
                 machineRepository.save(machine);
             }
         }
 
-        // Ici, vous pouvez créer une commande (Order)
-        // Pour l'instant, on vide juste le panier
+        Order order = orderService.createFromCart(cart);
         clearCart(userId);
+        return order != null ? order.getOrderNumber() : null;
     }
 
-    // Méthodes privées
+    // ─── PRIVÉS ──────────────────────────────────────────────────
+
     private Cart createNewCart(Long userId) {
         Cart cart = new Cart();
         cart.setUserId(userId);

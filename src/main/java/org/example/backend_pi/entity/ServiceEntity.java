@@ -1,17 +1,16 @@
 package org.example.backend_pi.entity;
-// entity/Service.java
+
+// entity/ServiceEntity.java
 
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.example.backend_pi.enums.AvailabilityStatus;
+import org.example.backend_pi.enums.BusinessType;
 import org.example.backend_pi.enums.CategoryType;
 import org.example.backend_pi.enums.ServiceType;
-
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -25,85 +24,74 @@ public class ServiceEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 200)
     private String name;
-
-    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
     private CategoryType category;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "service_type")
     private ServiceType serviceType;
-
-    @Column(name = "base_price")
-    private Double basePrice;
-
-    @Column(name = "price_unit", length = 50)
-    private String priceUnit;
-
-    @Column(length = 255)
-    private String location;
-
-    @Column(name = "location_latitude")
-    private String locationLatitude;
-
-    @Column(name = "location_longitude")
-    private String locationLongitude;
-
-    @Column(name = "contact_info", length = 255)
-    private String contactInfo;
 
     @Enumerated(EnumType.STRING)
     private AvailabilityStatus availability;
 
+    private Double basePrice;
+    private String priceUnit;
+    private String location;
+    private String contactInfo;
     private Double rating;
-
-    @Column(name = "review_count")
-    private Integer reviewCount = 0;
-
-    @Column(name = "matching_score")
-    private Double matchingScore;
+    private Integer reviewCount;
 
     @ElementCollection
     @CollectionTable(name = "service_images", joinColumns = @JoinColumn(name = "service_id"))
     @Column(name = "image_url")
-    private List<String> imageUrls = new ArrayList<>();
+    private List<String> imageUrls;
 
-    @Column(name = "provider_id")
     private Long providerId;
-
-    @Column(name = "provider_name", length = 100)
     private String providerName;
-
-    @Column(name = "provider_company_name", length = 150)
     private String providerCompanyName;
+    private Boolean isInApp;
 
-    @Column(name = "provider_avatar_url")
-    private String providerAvatarUrl;
+    @Column(name = "sub_category", length = 100)
+    private String subCategory;
 
-    @Column(name = "is_in_app")
-    private Boolean isInApp = true;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "business_type", length = 50)
+    private BusinessType businessType;
 
+    // ✅ AJOUTER CES CHAMPS POUR LA VALIDATION
+    @Column(name = "validation_status", nullable = false)
+    private String validationStatus = "PENDING";
 
-    @Column(name = "created_at")
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
+    @Column(name = "validated_by")
+    private Long validatedBy;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @JsonIgnore
-    @OneToMany(mappedBy = "service", cascade = CascadeType.ALL)
-    private List<Review> reviews = new ArrayList<>();
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (validationStatus == null) {
+            validationStatus = "PENDING";
+        }
         if (rating == null) rating = 0.0;
         if (reviewCount == null) reviewCount = 0;
+        if (isInApp == null) isInApp = true;
     }
 
     @PreUpdate

@@ -28,4 +28,9 @@ public interface MachineService {
     List<Machine> getAvailableMachines();
 
     List<Machine> getMachinesByType(String machineType);
+    Machine approveMachine(Long id, Long adminId);
+    Machine rejectMachine(Long id, String reason, Long adminId);
+    List<Machine> getPendingMachines();
+    List<Machine> getApprovedMachines();
+    List<Machine> getRejectedMachines();
 }
