@@ -4,14 +4,6 @@ on:
   push:
     branches:
       - events_back
-      - GesUserBack
-      - e-commerce
-      - hichemBack
-      - wellbeing_back
-      - api-getway
-      - eurika_server_taib
-      - projetcs_back
-      - PI_Taib
 
 jobs:
   build-and-push:
@@ -29,5 +21,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          tags: sarrast/syncra-${{ github.ref_name }}:latest
+          tags: sarrast/syncra-events:latest
