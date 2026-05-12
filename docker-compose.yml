@@ -1,0 +1,84 @@
+version: '3.8'
+services:
+  eureka:
+    build:
+      context: ./eurika_server_taib
+    ports:
+      - ""8761:8761""
+    networks:
+      - syncra-network
+  gateway:
+    build:
+      context: ./gateway
+    ports:
+      - ""8080:8080""
+    depends_on:
+      - eureka
+    networks:
+      - syncra-network
+  ms-events:
+    build:
+      context: ./events
+    ports:
+      - ""8089:8089""
+    depends_on:
+      - eureka
+    networks:
+      - syncra-network
+  ms-gesuser:
+    build:
+      context: ./gesuser
+    ports:
+      - ""8081:8081""
+    depends_on:
+      - eureka
+    networks:
+      - syncra-network
+  ms-ecommerce:
+    build:
+      context: ./ecommerce
+    ports:
+      - ""8083:8083""
+    depends_on:
+      - eureka
+    networks:
+      - syncra-network
+  ms-collab:
+    build:
+      context: ./collab
+    ports:
+      - ""8086:8086""
+    depends_on:
+      - eureka
+    networks:
+      - syncra-network
+  ms-wellbeing:
+    build:
+      context: ./wellbeing
+    ports:
+      - ""8084:8084""
+    depends_on:
+      - eureka
+    networks:
+      - syncra-network
+  ms-hichem:
+    build:
+      context: ./hichem
+    ports:
+      - ""8085:8085""
+    depends_on:
+      - eureka
+    networks:
+      - syncra-network
+  ms-projets:
+    build:
+      context: ./projets
+    ports:
+      - ""8082:8082""
+    depends_on:
+      - eureka
+    networks:
+      - syncra-network
+networks:
+  syncra-network:
+    driver: bridge
