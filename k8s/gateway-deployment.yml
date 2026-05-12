@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: syncra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: syncra/gateway:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: EUREKA_URL
+              value: http://eureka:8761/eureka/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: syncra
+spec:
+  selector:
+    app: gateway
+  ports:
+    - port: 8080
+      targetPort: 8080

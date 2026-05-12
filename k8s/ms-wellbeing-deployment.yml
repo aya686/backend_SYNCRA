@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-wellbeing
+  namespace: syncra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ms-wellbeing
+  template:
+    metadata:
+      labels:
+        app: ms-wellbeing
+    spec:
+      containers:
+        - name: ms-wellbeing
+          image: syncra/ms-wellbeing:latest
+          ports:
+            - containerPort: 8084
+          env:
+            - name: EUREKA_URL
+              value: http://eureka:8761/eureka/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-wellbeing
+  namespace: syncra
+spec:
+  selector:
+    app: ms-wellbeing
+  ports:
+    - port: 8084
+      targetPort: 8084

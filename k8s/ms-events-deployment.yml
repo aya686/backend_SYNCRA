@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-events
+  namespace: syncra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ms-events
+  template:
+    metadata:
+      labels:
+        app: ms-events
+    spec:
+      containers:
+        - name: ms-events
+          image: syncra/ms-events:latest
+          ports:
+            - containerPort: 8089
+          env:
+            - name: EUREKA_URL
+              value: http://eureka:8761/eureka/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-events
+  namespace: syncra
+spec:
+  selector:
+    app: ms-events
+  ports:
+    - port: 8089
+      targetPort: 8089

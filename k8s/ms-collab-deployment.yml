@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-collab
+  namespace: syncra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ms-collab
+  template:
+    metadata:
+      labels:
+        app: ms-collab
+    spec:
+      containers:
+        - name: ms-collab
+          image: syncra/ms-collab:latest
+          ports:
+            - containerPort: 8086
+          env:
+            - name: EUREKA_URL
+              value: http://eureka:8761/eureka/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-collab
+  namespace: syncra
+spec:
+  selector:
+    app: ms-collab
+  ports:
+    - port: 8086
+      targetPort: 8086
