@@ -1,0 +1,38 @@
+package org.example.backend_pi.enums;
+
+public enum NotificationType {
+    // Machines
+    MACHINE_APPROVED,
+    MACHINE_REJECTED,
+    MACHINE_LOW_STOCK,
+
+    // Services
+    SERVICE_APPROVED,
+    SERVICE_REJECTED,
+
+    // Demandes
+    REQUEST_RECEIVED,
+    REQUEST_ACCEPTED,
+    REQUEST_REJECTED,
+    REQUEST_IN_PROGRESS,
+    REQUEST_COMPLETED,
+    REQUEST_CANCELLED,
+
+    // Commandes
+    ORDER_CONFIRMED,
+    ORDER_IN_DELIVERY,
+    ORDER_DELIVERED,
+    ORDER_CANCELLED,
+
+    // Général
+    WELCOME,
+    NEW_MESSAGE,
+    REVIEW_RECEIVED,
+
+    // ✅ FIDÉLITÉ (nouveaux)
+    LOYALTY_POINTS_EARNED,
+    LOYALTY_POINTS_SPENT,
+    LOYALTY_TIER_UP,
+    LOYALTY_FREE_DELIVERY,
+    LOYALTY_PREMIUM_ACCESS
+}

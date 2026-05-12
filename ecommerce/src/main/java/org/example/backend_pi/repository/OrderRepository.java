@@ -1,0 +1,29 @@
+package org.example.backend_pi.repository;
+// repository/OrderRepository.java
+// ✅ Ajouter la méthode findByStatusIn() pour LoyaltyService
+
+import org.example.backend_pi.entity.Order;
+import org.example.backend_pi.enums.OrderStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    Optional<Order> findByOrderNumber(String orderNumber);
+
+    List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    List<Order> findByStatus(OrderStatus status);
+
+    List<Order> findAllByOrderByCreatedAtDesc();
+
+    // ✅ NOUVEAU : pour le classement Top Machines (commandes livrées/confirmées)
+    @Query("SELECT o FROM Order o WHERE o.status IN :statuses")
+    List<Order> findByStatusIn(@Param("statuses") List<String> statuses);
+}

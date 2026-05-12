@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-gesuser
+  namespace: syncra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ms-gesuser
+  template:
+    metadata:
+      labels:
+        app: ms-gesuser
+    spec:
+      containers:
+        - name: ms-gesuser
+          image: syncra/ms-gesuser:latest
+          ports:
+            - containerPort: 8081
+          env:
+            - name: EUREKA_URL
+              value: http://eureka:8761/eureka/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-gesuser
+  namespace: syncra
+spec:
+  selector:
+    app: ms-gesuser
+  ports:
+    - port: 8081
+      targetPort: 8081
