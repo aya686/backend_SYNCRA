@@ -16,24 +16,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Déterminer le dossier du microservice
-        id: vars
-        run: |
-          case "${{ github.ref_name }}" in
-            projetcs_back)      echo "service=projets"            >> $GITHUB_OUTPUT ;;
-            events_back)        echo "service=events"             >> $GITHUB_OUTPUT ;;
-            GesUserBack)        echo "service=gesuser"            >> $GITHUB_OUTPUT ;;
-            e-commerce)         echo "service=ecommerce"          >> $GITHUB_OUTPUT ;;
-            hichemBack)         echo "service=hichem"             >> $GITHUB_OUTPUT ;;
-            wellbeing_back)     echo "service=wellbeing"          >> $GITHUB_OUTPUT ;;
-            api-getway)         echo "service=gateway"            >> $GITHUB_OUTPUT ;;
-            eurika_server_taib) echo "service=eurika_server_taib" >> $GITHUB_OUTPUT ;;
-            PI_Taib)            echo "service=collab"             >> $GITHUB_OUTPUT ;;
-          esac
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -44,7 +28,7 @@ jobs:
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ steps.vars.outputs.service }}
-          file: ./${{ steps.vars.outputs.service }}/Dockerfile
+          context: .
+          file: ./Dockerfile
           push: true
           tags: sarrast/syncra-${{ github.ref_name }}:latest
