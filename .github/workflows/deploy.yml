@@ -19,9 +19,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true        # ← CRUCIAL : clone les submodules
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Déterminer le dossier du microservice
         id: vars
