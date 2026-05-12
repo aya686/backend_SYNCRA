@@ -1,0 +1,33 @@
+name: CI/CD SYNCRA
+
+on:
+  push:
+    branches:
+      - events_back
+      - GesUserBack
+      - e-commerce
+      - hichemBack
+      - wellbeing_back
+      - api-getway
+      - eurika_server_taib
+      - projetcs_back
+      - PI_Taib
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          image: sarrast/syncra-${{ github.ref_name }}:latest
